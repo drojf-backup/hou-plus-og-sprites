@@ -4,6 +4,7 @@ import hashlib
 import pickle
 from pathlib import Path
 import shutil
+import re
 
 original_hou_plus_sprites_folder = 'Higurashi Hou Plus Sprites'
 
@@ -99,6 +100,18 @@ class CurrentSpriteInfo:
         self.firstChapter = firstChapter
         self.key = key
 
+class MappedSpriteInfo:
+    def __init__(self, path, key) -> None:
+        self.path = path
+        self.key = key
+
+def get_key_from_filename(filename):
+    key = str(filename).rstrip("0123456789")
+
+    key = re.sub(r"^((portrait\\)|(sprite\\))", "", key)
+
+    return key
+
 def get_unique_sprites_per_chapter() -> dict[str, CurrentSpriteInfo]:
     chapter_list = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8', 'ch9']
     sprite_dict = {} #type: dict[str, CurrentSpriteInfo]
@@ -110,12 +123,25 @@ def get_unique_sprites_per_chapter() -> dict[str, CurrentSpriteInfo]:
         print(f"-------- {chapter} --------")
         chapter_folder_path = Path(current_mod_sprites_folder_path).joinpath(chapter)
 
-        for path in pathlib.Path(chapter_folder_path).rglob('*.*'):
+        paths = [p for p in pathlib.Path(chapter_folder_path).rglob('*.*')]
+
+        portrait = []
+        other = []
+
+        for path in paths:
+            if 'portrait' in str(path):
+                portrait.append(path)
+            else:
+                other.append(path)
+
+        paths = other + portrait
+
+        for path in paths:
             relpath = path.relative_to(chapter_folder_path)
 
             stripped_path = Path(relpath.parent).joinpath(relpath.stem)
 
-            key = str(stripped_path).rstrip("0123456789")
+            key = get_key_from_filename(stripped_path)
 
             # print(key)
 
@@ -128,16 +154,58 @@ def get_unique_sprites_per_chapter() -> dict[str, CurrentSpriteInfo]:
     return sprite_dict
 
 
+def build_mapped_sprites_dict():
+    chapter_list = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8', 'ch9']
+    sprite_dict = {} #type: dict[str, MappedSpriteInfo]
 
+
+    for chapter in chapter_list:
+        chapter_unique_count = 0
+
+        print(f"-------- {chapter} --------")
+        chapter_folder_path = Path(mapped_sprites_folder).joinpath(chapter)
+
+        paths = [p for p in pathlib.Path(chapter_folder_path).rglob('*.*')]
+
+        for path in paths:
+            relpath = path.relative_to(chapter_folder_path)
+
+            stripped_path = Path(relpath.parent).joinpath(relpath.stem)
+
+            key = get_key_from_filename(stripped_path)
+
+            path_including_chapter = path.relative_to(mapped_sprites_folder)
+            # print(f"{key} -> {path_including_chapter}")
+
+            if key not in sprite_dict:
+                sprite_dict[key] = MappedSpriteInfo(path_including_chapter, key)
+                chapter_unique_count += 1
+
+        print(f"{chapter} has {chapter_unique_count} unique items")
+
+    return sprite_dict
+
+
+
+# Get mapped sprites that apollo has worked on, but mapped by key
+mapped_sprites_dict = build_mapped_sprites_dict()
+
+# Get list of existing unqiue sprites currently used in our mod
 unique_sprite_dict = get_unique_sprites_per_chapter()
 
-for key, info in unique_sprite_dict.items():
-    source_path = os.path.join(current_mod_sprites_folder_path, info.firstChapter, info.path)
-    dest_path = os.path.join(current_unique_only, info.firstChapter, info.path)
+for key, value in unique_sprite_dict.items():
+    if key not in mapped_sprites_dict:
+        print(f"Key {key} is missing")
 
-    # print(f"{source_path} -> {dest_path}")
-    Path(dest_path).parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(source_path, dest_path)
+
+# Copy only unique sprites to output
+# for key, info in unique_sprite_dict.items():
+#     source_path = os.path.join(current_mod_sprites_folder_path, info.firstChapter, info.path)
+#     dest_path = os.path.join(current_unique_only, info.firstChapter, info.path)
+
+#     # print(f"{source_path} -> {dest_path}")
+#     Path(dest_path).parent.mkdir(parents=True, exist_ok=True)
+#     shutil.copy(source_path, dest_path)
 
 
 

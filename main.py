@@ -106,12 +106,18 @@ class MappedSpriteInfo:
         self.key = key
         self.full_path = full_path
 
-def get_key_from_filename(filename_with_ext):
+def get_key_from_filename(filename_with_ext, remove_portrait_sprite_folder=True):
     filename = Path(filename_with_ext).with_suffix('')
+
+    is_portrait_or_sprite = ('portrait' in filename_with_ext.parts) or ('sprite' in filename_with_ext.parts)
+    if not is_portrait_or_sprite:
+        # print(f"Key for {filename_with_ext} will just be {filename}")
+        return filename
 
     key = str(filename).rstrip("0123456789")
 
-    key = re.sub(r"^((portrait\\)|(sprite\\))", "", key)
+    if remove_portrait_sprite_folder:
+        key = re.sub(r"^((portrait\\)|(sprite\\))", "", key)
 
     return key
 
@@ -220,7 +226,7 @@ for path in pathlib.Path(current_mod_sprites_folder_path).rglob('*.*'):
 
     path_no_chapter = Path().joinpath(*rel_path.parts[1:])
 
-    print(path_no_chapter)
+    # print(path_no_chapter)
 
     current_mod_sprite_key = get_key_from_filename(path_no_chapter)
 
@@ -231,8 +237,35 @@ for path in pathlib.Path(current_mod_sprites_folder_path).rglob('*.*'):
 
     copy_list.append((path, mapped_sprite.full_path))
 
+# for (current_path, mapped_path) in copy_list:
+#     print(f"{current_path} -> {mapped_path}")
+
+# print(f"Got {len(copy_list)} items to copy")
+
+unique_keys_this_chapter = {}
+current_chapter = None
 for (current_path, mapped_path) in copy_list:
-    print(f"{current_path} -> {mapped_path}")
+    chapter = current_path.parts[1]
+
+    if current_chapter != chapter:
+        current_chapter = chapter
+        print(f"Begin chapter {chapter}")
+        unique_keys_this_chapter.clear()
+
+    path_no_chapter = Path().joinpath(*current_path.parts[2:])
+    
+    key = get_key_from_filename(path_no_chapter, remove_portrait_sprite_folder=False)
+
+    if key in unique_keys_this_chapter:
+        print(f"Will skipping duplicate key {key} for {current_path}, existing is {unique_keys_this_chapter[key]}")
+    else:
+        unique_keys_this_chapter[key] = current_path
+
+    # print(path_no_chapter)
+
+
+
+
 
 # Copy only unique sprites to output
 # for key, info in unique_sprite_dict.items():

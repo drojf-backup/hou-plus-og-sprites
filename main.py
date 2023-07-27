@@ -101,11 +101,14 @@ class CurrentSpriteInfo:
         self.key = key
 
 class MappedSpriteInfo:
-    def __init__(self, path, key) -> None:
+    def __init__(self, path, key, full_path) -> None:
         self.path = path
         self.key = key
+        self.full_path = full_path
 
-def get_key_from_filename(filename):
+def get_key_from_filename(filename_with_ext):
+    filename = Path(filename_with_ext).with_suffix('')
+
     key = str(filename).rstrip("0123456789")
 
     key = re.sub(r"^((portrait\\)|(sprite\\))", "", key)
@@ -178,7 +181,7 @@ def build_mapped_sprites_dict():
             # print(f"{key} -> {path_including_chapter}")
 
             if key not in sprite_dict:
-                sprite_dict[key] = MappedSpriteInfo(path_including_chapter, key)
+                sprite_dict[key] = MappedSpriteInfo(path_including_chapter, key, full_path=path)
                 chapter_unique_count += 1
 
         print(f"{chapter} has {chapter_unique_count} unique items")
@@ -193,10 +196,43 @@ mapped_sprites_dict = build_mapped_sprites_dict()
 # Get list of existing unqiue sprites currently used in our mod
 unique_sprite_dict = get_unique_sprites_per_chapter()
 
+key_missing = False
 for key, value in unique_sprite_dict.items():
     if key not in mapped_sprites_dict:
         print(f"Key {key} is missing")
+        key_missing = True
 
+if key_missing:
+    print("Terminating as some sprites are not matched.")
+    exit(-1)
+
+chapter_list = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7', 'ch8', 'ch9']
+
+copy_list = []
+
+for path in pathlib.Path(current_mod_sprites_folder_path).rglob('*.*'):
+    rel_path = path.relative_to(current_mod_sprites_folder_path)
+
+    chapter_folder = rel_path.parts[0]
+
+    if str(chapter_folder) not in chapter_list:
+        raise Exception(f"file {path} has folder not in chapter list")
+
+    path_no_chapter = Path().joinpath(*rel_path.parts[1:])
+
+    print(path_no_chapter)
+
+    current_mod_sprite_key = get_key_from_filename(path_no_chapter)
+
+    if current_mod_sprite_key not in mapped_sprites_dict:
+        raise Exception(f"Missing mapped sprite for key {current_mod_sprite_key}")
+
+    mapped_sprite = mapped_sprites_dict[current_mod_sprite_key]
+
+    copy_list.append((path, mapped_sprite.full_path))
+
+for (current_path, mapped_path) in copy_list:
+    print(f"{current_path} -> {mapped_path}")
 
 # Copy only unique sprites to output
 # for key, info in unique_sprite_dict.items():

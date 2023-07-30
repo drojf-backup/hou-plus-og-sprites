@@ -15,6 +15,8 @@ current_mod_sprites_folder_path = 'current_mod_sprites'
 
 current_unique_only = 'current_unique_only'
 
+final_output_path = 'final_output'
+
 def sha256sum(filename):
     with open(filename, 'rb', buffering=0) as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
@@ -242,6 +244,8 @@ for path in pathlib.Path(current_mod_sprites_folder_path).rglob('*.*'):
 
 # print(f"Got {len(copy_list)} items to copy")
 
+trimmed_copy_list = []
+
 unique_keys_this_chapter = {}
 current_chapter = None
 for (current_path, mapped_path) in copy_list:
@@ -257,14 +261,33 @@ for (current_path, mapped_path) in copy_list:
     key = get_key_from_filename(path_no_chapter, remove_portrait_sprite_folder=False)
 
     if key in unique_keys_this_chapter:
-        print(f"Will skipping duplicate key {key} for {current_path}, existing is {unique_keys_this_chapter[key]}")
+        print(f"Will skip duplicate key {key} for {current_path}, existing is {unique_keys_this_chapter[key]}")
     else:
         unique_keys_this_chapter[key] = current_path
+        trimmed_copy_list.append((current_path, mapped_path))
 
     # print(path_no_chapter)
 
+for (current_path, mapped_path) in trimmed_copy_list:
+    chapter_number_string = str(current_path.parts[1])
+    chapter_number = int(chapter_number_string.replace('ch', ''))
+
+    output_subpath = f'HigurashiEp{chapter_number:02}_Data/StreamingAssets/OGSprites'
+
+    # remove the current_mod_sprites from the current path
+    relative_current_path = Path().joinpath(*Path(current_path).parts[2:])
+
+    # print(relative_current_path)
 
 
+
+
+    source = mapped_path
+    dest = os.path.join(final_output_path, output_subpath, relative_current_path)
+
+    print(f"{source} -> {dest}")
+    Path(dest).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(source, dest)
 
 
 # Copy only unique sprites to output

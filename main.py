@@ -5,6 +5,7 @@ import pickle
 from pathlib import Path
 import shutil
 import re
+import csv
 
 original_hou_plus_sprites_folder = 'Higurashi Hou Plus Sprites'
 
@@ -35,15 +36,17 @@ def caculate_hou_plus_sha256():
 
     return mapping
 
-
+# Map hou+ pathnames to Mangagamer Release filenames
+# This will allow us to re-process the files later in case something changes.
 def generate_mapping():
     # Enable this line to re-calculate the sh256 of each hou plus sprite
-    # with open(hou_plus_mapping_filename, 'wb') as out:
-    #     pickle.dump(caculate_hou_plus_sha256(), out)
+    #with open(hou_plus_mapping_filename, 'wb') as out:
+    #    pickle.dump(caculate_hou_plus_sha256(), out)
 
     with open(hou_plus_mapping_filename, 'rb') as mapping:
         hou_plus_sha256_to_filename = pickle.load(mapping) #type: dict[str, str]
 
+    mapping = {} # type: dict[str, str]
 
     for path in pathlib.Path(mapped_sprites_folder).rglob('*.*'):
         
@@ -51,10 +54,13 @@ def generate_mapping():
 
         if sha256 in hou_plus_sha256_to_filename:
             original_path = hou_plus_sha256_to_filename[sha256]
-            print(f"MAPPED {path} -> {original_path}")
+            print(f"MAPPED mg: {path} -> hou:{original_path}")
+            mapping[path] = original_path
         else:
             print(f"MISSING {path} -> NO MATCH")
+            mapping[path] = "NO_MATCH"
 
+    return mapping
 
 def get_current_mod_sprite_paths():
     return [p.relative_to(current_mod_sprites_folder_path) for p in pathlib.Path(current_mod_sprites_folder_path).rglob('*.*')]
@@ -196,14 +202,40 @@ def build_mapped_sprites_dict():
 
     return sprite_dict
 
+# Remove the topmost folder of the (relative?) path. If there is only one or fewer folder in the path, the path is not changed.
+def strip_top_folder(path: str):
+    parts = Path(path).parts
 
+    if len(parts) <= 1:
+        return path
+    else:
+        return Path('').joinpath(*(Path(path).parts[1:]))
+
+# Determine which mangagamer sprite goes to which manually mapped hou sprite, using the sh256 of each file
+# Write out to a 2 column CSV file, where the first column is the mangagamer filename, and the second column is the houe filename
+def map_mangagamer_sprite_to_manually_mapped_hou(out_csv_path):
+    mangagamer_to_hou_mapping = generate_mapping()
+
+    with open(out_csv_path, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting = csv.QUOTE_ALL)
+
+        # writer.writerow(['mangagamer', 'hou'])
+
+        for mg_key, hou_value in mangagamer_to_hou_mapping.items():
+            writer.writerow([strip_top_folder(mg_key), strip_top_folder(hou_value)])
+
+map_mangagamer_sprite_to_manually_mapped_hou("mg_to_hou_mapping.csv")
+
+exit(-1)
 
 # Get mapped sprites that apollo has worked on, but mapped by key
 mapped_sprites_dict = build_mapped_sprites_dict()
 
-# Get list of existing unqiue sprites currently used in our mod
+# Get list of existing unique sprites currently used in our mod
 unique_sprite_dict = get_unique_sprites_per_chapter()
 
+# Do a sanity check by going through each sprite currently used in our mod,
+# And check there is a corresponding mapping to the manually matched sprites
 key_missing = False
 for key, value in unique_sprite_dict.items():
     if key not in mapped_sprites_dict:

@@ -222,9 +222,9 @@ def map_mangagamer_sprite_to_manually_mapped_hou(out_csv_path):
         # writer.writerow(['mangagamer', 'hou'])
 
         for mg_key, hou_value in mangagamer_to_hou_mapping.items():
-            writer.writerow([strip_top_folder(mg_key), strip_top_folder(hou_value)])
+            writer.writerow([strip_top_folder(mg_key), hou_value])
 
-map_mangagamer_sprite_to_manually_mapped_hou("mg_to_hou_mapping.csv")
+map_mangagamer_sprite_to_manually_mapped_hou("csv_mapping/mg_to_hou_mapping.csv")
 
 exit(-1)
 

@@ -18,6 +18,8 @@ current_unique_only = 'current_unique_only'
 
 final_output_path = 'final_output'
 
+path_fixed_sprites = 'fixed_sprites'
+
 def sha256sum(filename):
     with open(filename, 'rb', buffering=0) as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
@@ -211,9 +213,26 @@ def strip_top_folder(path: str):
     else:
         return Path('').joinpath(*(Path(path).parts[1:]))
 
+# I've manually fixed some sprites. This function checks if a fixed sprite
+# exists for a given hou sprite (with full path name)
+def find_fixed_sprite_from_hou_full_path(hou_full_path):
+    # If you merge all the hou paths together, you get a path missing the 'higu 1-4' and 'higu kai' part
+    merged_path = strip_top_folder(hou_full_path)
+    fixed_path = os.path.join(path_fixed_sprites, merged_path)
+    fixed_path = Path(fixed_path)
+    fixed_path = fixed_path.with_stem(fixed_path.stem + '_fixed')
+
+    if os.path.exists(fixed_path):
+        return fixed_path
+    else:
+        return None
+
+
 # Determine which mangagamer sprite goes to which manually mapped hou sprite, using the sh256 of each file
 # Write out to a 2 column CSV file, where the first column is the mangagamer filename, and the second column is the houe filename
 def map_mangagamer_sprite_to_manually_mapped_hou(out_csv_path):
+    fixed_sprites_used = {} # DEBUG
+
     mangagamer_to_hou_mapping = generate_mapping()
 
     with open(out_csv_path, 'w', newline='') as csvfile:
@@ -222,7 +241,19 @@ def map_mangagamer_sprite_to_manually_mapped_hou(out_csv_path):
         # writer.writerow(['mangagamer', 'hou'])
 
         for mg_key, hou_value in mangagamer_to_hou_mapping.items():
-            writer.writerow([strip_top_folder(mg_key), hou_value])
+            # Also check if a fixed sprite exists, if so then set that for the third column of the csv. Otherwise set as None
+            fixed_path = find_fixed_sprite_from_hou_full_path(hou_value)
+            writer.writerow([strip_top_folder(mg_key), hou_value, fixed_path])
+
+            # DEBUG
+            if fixed_path is not None:
+                fixed_sprites_used[fixed_path] = None
+
+
+    # DEBUG: Print out how many fixed sprites exist/which ones were detected, in case this script missed them
+    print(f"Found {len(fixed_sprites_used)} fixed paths")
+    for path, _ in fixed_sprites_used.items():
+        print(f"- {path}")
 
 map_mangagamer_sprite_to_manually_mapped_hou("csv_mapping/mg_to_hou_mapping.csv")
 

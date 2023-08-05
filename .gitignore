@@ -1,5 +1,11 @@
 archives/
 current_mod_sprites/
+current_unique_only/
+current_unique_only_old/
+bad_images/
+final_output/
+fixed_sprites/
+only_used_hou_sprites/
 Higurashi Hou Plus Sprites/
 mapped_sprites/
 hou_plus_sha256.pickle

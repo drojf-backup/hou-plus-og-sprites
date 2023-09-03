@@ -255,6 +255,7 @@ def map_mangagamer_sprite_to_manually_mapped_hou(out_csv_path):
     for path, _ in fixed_sprites_used.items():
         print(f"- {path}")
 
+# Create a csv file mapping each mangagamer sprite to the corresponding hou sprite, including fixed sprites
 map_mangagamer_sprite_to_manually_mapped_hou("csv_mapping/mg_to_hou_mapping.csv")
 
 exit(-1)

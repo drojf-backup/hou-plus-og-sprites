@@ -4,10 +4,18 @@ current_unique_only/
 current_unique_only_old/
 bad_images/
 final_output/
+final_output_old/
 fixed_sprites/
+fixed_sprites_unresized/
 fixed_sprites_uncompressed/
 only_used_hou_sprites/
+only_used_hou_sprites_fix_centering/
+only_used_hou_sprites_resize_canvas/
+only_used_hou_sprites_resize_canvas_optimized/
 Higurashi Hou Plus Sprites/
 Higurashi Hou Plus Sprites Uncompressed/
 mapped_sprites/
 hou_plus_sha256.pickle
+mod_final_manual_minimal/
+out_for_mod_fixed/
+out_for_mod_fixed_unresized/
